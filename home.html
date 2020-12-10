@@ -1,0 +1,173 @@
+<!Doctype html>
+<html>
+
+<head>
+	<title>Chess</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+
+<body>
+
+	<h1 id="username"></h1>
+	<button id="create" onclick="create()">Create Game</button><br>
+	<input id="joinText" type="text"></input>
+	<button id="join" onclick="join()">Join Game</button><br>
+	<input id="moveText" type="text"></input>
+	<button id="move" onclick="move()">Move</button><br>
+	<p id="playing"></p>
+	<div id="dashboard">
+		<div id="board">
+
+		</div>
+		<div id="games">
+
+		</div>
+	</div>
+</body>
+
+<script>
+	function getGames() {
+		$.post("server/getGames.php", {
+			}, function(data, status) {
+				$("#games").html("Open games:");
+				$("#games").append(data);
+			}
+		);
+	}
+	setInterval(getGames, 1000);
+	
+	function create() {
+		$.post("server/create.php", {
+			}, function(data, status) {
+				console.log(data);
+			}
+		);
+	}
+
+	function join() {
+		$.post("server/join.php", {
+				id: $("#joinText").val()
+			}, function(data, status) {
+				console.log(data);
+			}
+		);
+	}
+
+	function move() {
+		// probably have to not use the following code
+		var moveToMake = $("#moveText").val();
+		console.log(moveToMake);
+		$.post("server/game.php", {
+				move: moveToMake
+			}, function(data, status) {
+				console.log(data);
+			}
+		);
+	}
+
+	function getData() {
+		$.get("server/home.php", function(data, status) {
+				var dataParts = data.split("|");
+				var playing = dataParts[0];
+				var fen = "";
+				if(dataParts[1]) {
+					fen = dataParts[1];
+				} else {
+					fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+				}
+				$("#username").html(playing);
+				setBoard(fen);
+			}
+		);
+	}
+	setInterval(function() {getData()}, 250);
+
+	function createBoard() {
+		var whiteSquare = true;
+		for(var i = 7; i >= 0; i--) {
+			var rowBeg = "<div class='row' id='row" + i + "'>";
+			var rowEnd = "</div>";
+			for(var j = 0; j < 8; j++) {
+				var square = "<div class='square ";
+				if(whiteSquare) {
+					square += "whiteSquare' ";
+				} else {
+					square += "blackSquare' ";
+				}
+				whiteSquare = !whiteSquare;
+				square += "id='" + i + j + "'></div>";
+				rowBeg += square;
+			}
+			whiteSquare = !whiteSquare;
+			var row = rowBeg + rowEnd;
+			$("#board").append(row);
+		}
+	}
+	$(document).ready(createBoard);
+
+	function setSquare(row, col, pic) {
+		$("#" + row + col).html("<img src='" + pic + "'></img>");
+	}
+
+	function setBoard(fen) {
+		fen = fen.substr(0, fen.indexOf(" "));
+		fen = fen.replace(/\//g, "");
+		var fenI = 0;
+		for(var i = 7; i >= 0; i--) {
+			for(var j = 0; j < 8; j++) {
+				currChar = fen.charAt(fenI);
+				if(currChar >= '0' && currChar <= '9') {
+					for(var k = 0; k < parseInt(currChar); k++) {
+						$("#" + i + j).html("");
+					}
+					j += parseInt(currChar) - 1;
+				} else {
+					if(currChar == currChar.toUpperCase()) {
+						// is a white piece
+						setSquare(i, j, "images/w" + currChar + ".png");
+					} else {
+						setSquare(i, j, "images/b" + currChar + ".png");
+					}
+				}
+				fenI += 1;
+			}
+		}
+	}
+
+	function refreshBoard() {
+
+	}
+</script>
+
+<style>
+	#board {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.row {
+		display: flex;
+		flex-direction: row;
+	}
+
+	.square {
+		width: 75px;
+		height: 75px;
+		border: 1px solid black;
+	}
+
+	.whiteSquare {
+		background-color: lightgray;
+	}
+
+	.blackSquare {
+		background-color: darkgray;
+	}
+
+	img {
+		max-width: 100%;
+		max-height: 100%;
+	}
+</style>
+
+</html>
